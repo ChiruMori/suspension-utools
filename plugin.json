@@ -1,14 +1,14 @@
 {
-	"pluginName": "悬浮",
-	"description": "悬浮你的图片",
-	"author": "qinyongliang",
-	"homepage": "https://github.com/qinyongliang/",
+	"pluginName": "增强悬浮",
+	"description": "悬浮更多内容",
+	"author": "ChiruMori",
+	"homepage": "https://cxlm.work",
 	"preload": "preload.js",
-	"version": "1.2.8",
+	"version": "2.0.0",
 	"logo": "icon.png",
 	"features": [
 		{
-			"code": "suspend",
+			"code": "pic_sus",
 			"cmds": [
 				{
 					"type": "img",
@@ -24,28 +24,42 @@
 			]
 		},
 		{
-			"code": "suspend-screenshot",
-			"cmds": ["截图并悬浮"]
+			"code": "shot_sus",
+			"cmds": [
+				"截图并悬浮"
+			]
 		},
 		{
-			"code": "suspend-base64",
+			"code": "base_sus",
 			"cmds": [
 				{
 					"type": "regex",
 					"label": "悬浮base64图片",
-					"match": "/^data:image\/(bmp|gif|heic|jpeg|jpeg|jpeg|png|svg\\+xml|webp|x-icon);base64,/",
-					"minLength":100
+					"match": "/^data:image/(bmp|gif|heic|jpeg|jpeg|jpeg|png|svg\\+xml|webp|x-icon);base64,/",
+					"minLength": 100
 				}
 			]
 		},
 		{
-			"code": "suspend-svg",
+			"code": "svg_sus",
 			"cmds": [
 				{
 					"type": "regex",
 					"label": "悬浮svg",
-					"match": "/^<svg[\\d\\D\\w\\W\\s\\S]*<\/svg>[\\D]*$/",
-					"minLength":50
+					"match": "/^<svg[\\d\\D\\w\\W\\s\\S]*</svg>[\\D]*$/",
+					"minLength": 50
+				}
+			]
+		},
+		{
+			"code": "htm_sus",
+			"cmds": [
+				{
+					"type": "files",
+					"label": "悬浮页面",
+					"fileType": "file",
+					"match": "/.(?:html|htm)$/i",
+					"maxLength": 9
 				}
 			]
 		}
