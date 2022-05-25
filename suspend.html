@@ -4,7 +4,7 @@
     body {
         margin: 0px;
         width: 100%;
-        height: 100;
+        height: 100%;
         -webkit-user-select: none;
         user-select: none;
         overflow: hidden;
@@ -23,7 +23,6 @@
 
     .main {
         width: 100%;
-        height: auto;
         border-radius: 6px;
         overflow: hidden !important;
     }
@@ -54,24 +53,70 @@
     const minWidth = 100;
     let lock = false;
     let picResource = filePath && !filePath.endsWith('.html') ? filePath : '';
+    let innerDoc = null;
+    let frameScale = 1;
     window.rotateX = 0;
     window.rotateY = 0;
     // 页面组件及初始化
     const img = document.querySelector("img");
     const iframe = document.querySelector("iframe");
+    let showEle = null;
     if (!picResource) {
         iframe.src = filePath;
         img.style.display = 'none';
+        showEle = iframe;
+        iframe.onload = function() {
+            innerDoc = document.getElementsByTagName('iframe')[0].contentWindow.document;
+            resizeFrame();
+        }
     } else {
         img.src = resource;
         iframe.style.display = 'none';
+        showEle = img;
     }
     // 绑定监听
     bindKeyboardListener();
     bindMouseWheelListener();
     bindMouseDrag();
+    // 窗口重置监听
+    window.onresize = resizeFrame;
 
-    // 旋转窗口
+    function sleep(time) {
+        return new Promise((res, rej) => {
+            setTimeout(res, time);
+        });
+    }
+
+    async function waitIFrame() {
+        while(null === innerDoc) {
+            console.log('Loading iframe...');
+            await sleep(300);
+        }
+    }
+
+    function bindClick(ele, func) {
+        let toBind = func;
+        if (typeof ele.onclick === 'function') {
+            const old = ele.onclick;
+            toBind = (e) => {
+                old(e);
+                func(e);
+            }
+        }
+        ele.onclick = toBind;
+    }
+
+    function resizeFrame() {
+        if (!iframe) {
+            return;
+        }
+        iframe.width = window.innerWidth;
+        iframe.height = window.innerHeight;
+    }
+
+    /**
+     * 旋转窗口
+     */
     function rotate(degree) {
         if (lock) {
             return;
@@ -99,7 +144,12 @@
     /**
      * 绑定键盘按键事件
      */
-    function bindKeyboardListener() {
+    async function bindKeyboardListener() {
+        targetDoc = document;
+        if (!picResource) {
+            await waitIFrame()
+            targetDoc = innerDoc;
+        }
         let keyCounter = {
             lastKey: undefined,
             key: undefined,
@@ -107,11 +157,11 @@
             time: 0
         }
         let dowingKey = {};
-        document.addEventListener("keyup", event => {
+        targetDoc.addEventListener("keyup", event => {
             delete dowingKey[event.key]
-        })
-        document.addEventListener("keydown", event => {
-            // console.log(event.key);
+        });
+        targetDoc.addEventListener("keydown", event => {
+            console.log(event.key);
             //长按操作将加速
             if (keyCounter.key === event.key && new Date().getTime() - keyCounter.time < 200) {
                 keyCounter.count++
@@ -125,25 +175,22 @@
                 case "s":
                 case "S":
                     if (dowingKey["Control"] || dowingKey["Meta"]) {
-                        document.body.className = ""
+                        targetDoc.body.className = ""
                         //等待透明关闭，再保存当前图片
                         setTimeout(() => window.saveNowImage(), 100)
-                    } else if (!picResource) {
-                        iframe.width = defaultWidth;
-                        iframe.height = defaultHeight;
                     }
                     break
                 case "c":
                 case "C":
                     if (dowingKey["Control"] || dowingKey["Meta"]) {
-                        document.body.className = ""
+                        targetDoc.body.className = ""
                         //等待透明关闭，再拷贝当前图片
                         setTimeout(() => window.copyNowImage(), 100)
                     }
                     break
                 case "q":
                 case "Q":
-                    document.body.className = ""
+                    targetDoc.body.className = ""
                     //等待透明关闭，再去编辑图片
                     setTimeout(() => window.toEdit(), 100)
                     break;
@@ -164,12 +211,20 @@
                     break;
                 case "+":
                 case "=":
-                    window.resize(keyCounter.count / 2, img.height / img.width);
+                    if (!picResource) {
+                        window.resizeTo(window.innerWidth + keyCounter.count, window.innerHeight + keyCounter.count);
+                        resizeFrame();
+                    } else {
+                        window.resize(keyCounter.count / 2, img.height / img.width);
+                    }
                     break;
                 case "-":
                 case "_":
-                    if (img.width > minWidth) {
-                        window.resize(0 - keyCounter.count / 2, img.height / img.width);
+                    if (!picResource) {
+                        window.resizeTo(window.innerWidth - keyCounter.count, window.innerHeight - keyCounter.count);
+                        resizeFrame();
+                    } else if (img.width > minWidth) {
+                        window.resize(-keyCounter.count / 2, img.height / img.width);
                     }
                     break;
                 //旋转相关
@@ -187,48 +242,70 @@
                 case "Home":
                 case "End":
                     window.rotateY += 180;
-                    window.document.body.style.webkitTransform = `rotateX(${window.rotateX}deg) rotateY(${window.rotateY}deg)`
+                    targetDoc.body.style.webkitTransform = `rotateX(${window.rotateX}deg) rotateY(${window.rotateY}deg)`
                     break;
                 //上下反转
                 case "PageUp":
                 case "PageDown":
                     window.rotateX -= 180;
-                    window.document.body.style.webkitTransform = `rotateX(${window.rotateX}deg) rotateY(${window.rotateY}deg)`
+                    targetDoc.body.style.webkitTransform = `rotateX(${window.rotateX}deg) rotateY(${window.rotateY}deg)`
                     break;
             }
-            dowingKey[event.key] = true
+            dowingKey[event.key] = true;
         });
     }
     
     /**
      * 绑定鼠标滚轮事件
      */
-    function bindMouseWheelListener() {
-        document.body.addEventListener('mousewheel', (e) => {
-            let ele = picResource ? img : iframe;
-            let delta = -e.deltaY;
-            if (delta < 0 && ele.width <= minWidth) {
+    async function bindMouseWheelListener() {
+        const wheelListener = (e) => {
+            let scale = picResource ? img.height / img.width : frameScale;
+            let delta = (-e.deltaY) >> 5;
+            if (delta < 0 && window.innerWidth <= minWidth) {
                 return false;
             }
-            window.resize(delta / 50, ele.height / ele.width);
+            if (picResource) {
+                window.resize(delta, scale);
+            } else {
+                window.resizeTo(window.innerWidth + delta, window.innerHeight + delta);
+            }
             return false;
-        });
+        };
+
+        let target = document;
+        if (!picResource) {
+            await waitIFrame();
+            target = innerDoc;
+        }
+        target.body.addEventListener('mousewheel', wheelListener);
     }
 
     /**
      * 绑定鼠标拖动事件，点击后3s内可以拖拽，3s后恢复鼠标事件功能
      */
-    function bindMouseDrag() {
-        document.body.onclick = function() {
-            const dragAreaClass = 'drag-area';
-            document.body.classList.add(dragAreaClass);
-            setTimeout(() => {
-                document.body.classList.remove(dragAreaClass);
-            }, 3000);
+    async function bindMouseDrag() {
+        const dragAreaClass = 'drag-area';
+        const dragAreaListener = (ele, target) => {
+            bindClick(ele, function() {
+                target.classList.add(dragAreaClass);
+                setTimeout(() => {
+                    target.classList.remove(dragAreaClass);
+                }, 3000);
+            });
+        };
+
+        let clickEle = showEle;
+        if (!picResource) {
+            await waitIFrame();
+            clickEle = innerDoc.body;
         }
+        dragAreaListener(clickEle, showEle);
     }
 
-    // 重画图片
+    /**
+     * 重绘图片
+     */
     function rotateImage(degree) {
         degree = degree % 360;
         let img = document.querySelector("img");

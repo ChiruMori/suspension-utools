@@ -37,14 +37,24 @@ function show(payload, filePath) {
                 params[item.split("=")[0]] = item.split("=")[1];
             });
     }
-    let img = new Image();
-    img.src = payload;
-    img.onload = function () {
-        let width = img.width / (utools.isMacOs() ? 2 : 1);
-        let height = img.height / (utools.isMacOs() ? 2 : 1);
-        utils.log(`宽高: width: ${width}, height: ${height}`);
+    utils.log(payload ? payload.substring(0, 30): null, filePath);
+    // 网页的情况
+    let isPage = filePath && (filePath.endsWith('htm') || filePath.endsWith('html'));
+    isPage ||= payload.startsWith("http://") || payload.startsWith("https://");
+    if (!isPage) {
+        let img = new Image();
+        img.src = payload;
+        img.onload = function () {
+            let width = img.width / (utools.isMacOs() ? 2 : 1);
+            let height = img.height / (utools.isMacOs() ? 2 : 1);
+            utils.log(`图片宽高: width: ${width}, height: ${height}`);
+            loadWindow(width, height, payload, filePath, params);
+        };
+    } else {
+        let width = utils.config.defaultWidth / (utools.isMacOs() ? 2 : 1);
+        let height = utils.config.defaultHeight / (utools.isMacOs() ? 2 : 1);
         loadWindow(width, height, payload, filePath, params);
-    };
+    }
 }
 
 function loadWindow(width, height, payload, filePath, params) {
@@ -63,7 +73,7 @@ function loadWindow(width, height, payload, filePath, params) {
     localStorage.setItem(eleKey, payload);
     localStorage.setItem(eleKey + "_file", filePath);
     let windowOptions = {
-        title: "floooat",
+        title: "悬浮",
         x: params.x ? parseInt(params.x) : cursorPoint.x,
         y: params.y ? parseInt(params.y) : cursorPoint.y,
         width: parseInt(width),

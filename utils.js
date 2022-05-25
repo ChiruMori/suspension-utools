@@ -4,6 +4,8 @@ const constants = {
     debug: true,
     devTool: false,
     logFile: "C:/Users/cxlm/moyu/suspension-utools/debug.log",
+    defaultWidth: 300,
+    defaultHeight: 200,
 };
 
 /**
