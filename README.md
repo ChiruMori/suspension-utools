@@ -28,6 +28,11 @@
  - 受限支持网页悬浮
    - 支持任意网络页面的悬浮
 
+你可以在桌面悬浮一个[看板娘](https://github.com/ChiruMori/poster-girl-l2d-2233)，也可以把网页贴在桌面使用，如下：
+
+![demo.jpg](./demo.jpg)
+
+
 支持选中悬浮图片后保存/拷贝
 
 
