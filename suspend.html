@@ -78,8 +78,8 @@
     // 全局变量常量
     const minWidth = 100;
     let lock = false;
-    let picResource = filePath && !filePath.endsWith('.html') ? filePath : '';
-    let webPage = filePath.startsWith('http');
+    let webPage = filePath && filePath.startsWith('http');
+    let picResource = !webPage && !filePath.endsWith('.html') ? filePath : '';
     let innerDoc = null;
     let frameScale = 1;
     window.rotateX = 0;
