@@ -56,10 +56,22 @@
 			"cmds": [
 				{
 					"type": "files",
-					"label": "悬浮页面",
+					"label": "悬浮本地页面",
 					"fileType": "file",
 					"match": "/.(?:html|htm)$/i",
 					"maxLength": 9
+				}
+			]
+		},
+		{
+			"code": "web_sus",
+			"cmds": [
+				{
+					"type": "regex",
+					"label": "悬浮网页",
+					"fileType": "file",
+					"match": "/^https?:\/\//i",
+					"maxLength": 500
 				}
 			]
 		}

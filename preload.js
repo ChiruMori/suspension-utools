@@ -278,24 +278,44 @@ window.exports = {
         args: {
             enter: (action) => {
                 window.utools.hideMainWindow();
-                if (action.type === "files") {
-                    for (i in action.payload) {
-                        fileUrlData(action.payload[i].path)
-                            .then((payload) => {
-                                show(payload, action.payload[i].path);
-                            })
-                            .catch((err) => {
-                                utools.showNotification(err);
-                            })
-                            .finally(() => {
-                                window.utools.outPlugin();
-                            });
-                    }
-                } else if (action.type === "img") {
-                    show(action.payload);
-                    window.utools.outPlugin();
+                utils.log(action);
+                switch (action.type) {
+                    case "files":
+                        for (i in action.payload) {
+                            fileUrlData(action.payload[i].path)
+                                .then((payload) => {
+                                    show(payload, action.payload[i].path);
+                                })
+                                .catch((err) => {
+                                    utools.showNotification(err);
+                                })
+                                .finally(() => {
+                                    window.utools.outPlugin();
+                                });
+                        }
+                        break;
+                    case "img":
+                        show(action.payload);
+                        window.utools.outPlugin();
+                    default:
                 }
             },
+        },
+    },
+    web_sus: {
+        mode: "none",
+        args: {
+            enter: (action) => {
+                window.utools.hideMainWindow();
+                utils.log(action);
+                if (action.type === "regex") {
+                    try{
+                        show(action.payload, action.payload);
+                    } finally {
+                        window.utools.outPlugin();
+                    }
+                }
+            }
         },
     },
 };

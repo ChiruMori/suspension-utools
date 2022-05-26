@@ -13,7 +13,7 @@
         opacity: 1;
     }
 
-    .hover-area {
+    .hover-area, .drag-ball, body {
         transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
     }
 
@@ -25,6 +25,27 @@
         width: 100%;
         border-radius: 6px;
         overflow: hidden !important;
+        border: none;
+    }
+
+    .drag-ball {
+        position: fixed;
+        text-align: center;
+        right: -0.5em;
+        bottom: -0.5em;
+        width: 2em;
+        height: 2em;
+        border-radius: 50%;
+        line-height: 2em;
+        opacity: 0.5;
+        background-color: aqua;
+        font-size: 18pt;
+        font-weight: bold;
+    }
+
+    .drag-ball:hover, .drag-area .drag-ball {
+        opacity: 1;
+        transform: translate(-50%, -50%);
     }
     
     .drag-area {
@@ -32,12 +53,17 @@
         cursor: move;
     }
 
+    #container.drag-area iframe {
+        border: solid white;
+    }
+
 </style>
 
-<body class="hover-area">
-    <div>
-        <img class="main"/>
+<body>
+    <div id="container">
+        <img class="main hover-area"/>
         <iframe class="main"></iframe>
+        <div id="drag-ball" class="drag-ball" style="display: none;">+</div>
     </div>
 </body>
 
@@ -53,6 +79,7 @@
     const minWidth = 100;
     let lock = false;
     let picResource = filePath && !filePath.endsWith('.html') ? filePath : '';
+    let webPage = filePath.startsWith('http');
     let innerDoc = null;
     let frameScale = 1;
     window.rotateX = 0;
@@ -60,13 +87,19 @@
     // 页面组件及初始化
     const img = document.querySelector("img");
     const iframe = document.querySelector("iframe");
+    const dragBall = document.getElementById("drag-ball");
+    const container = document.getElementById("container");
     let showEle = null;
     if (!picResource) {
         iframe.src = filePath;
         img.style.display = 'none';
         showEle = iframe;
         iframe.onload = function() {
-            innerDoc = document.getElementsByTagName('iframe')[0].contentWindow.document;
+            if (webPage) {
+                innerDoc = document.getElementsByTagName('iframe')[0].contentWindow;
+            } else {
+                innerDoc = document.getElementsByTagName('iframe')[0].contentWindow.document;
+            }
             resizeFrame();
         }
     } else {
@@ -75,11 +108,18 @@
         showEle = img;
     }
     // 绑定监听
-    bindKeyboardListener();
-    bindMouseWheelListener();
-    bindMouseDrag();
+    if (webPage) {
+        bindWheelListener(dragBall);
+        bindDragAreaListener(dragBall, container);
+        dragBall.style.display = 'block';
+    } else {
+        bindKeyboardListener();
+        bindMouseWheelListener();
+        bindMouseDrag();
+    }
     // 窗口重置监听
     window.onresize = resizeFrame;
+
 
     function sleep(time) {
         return new Promise((res, rej) => {
@@ -139,6 +179,34 @@
             window.moveBounds(yOffset - xOffset, xOffset - yOffset, height, width);
             lock = false;
         }
+    }
+
+    // 事件绑定
+
+    function bindWheelListener(ele) {
+        ele.addEventListener('mousewheel', evt => {
+            let scale = picResource ? img.height / img.width : frameScale;
+            let delta = (-evt.deltaY) >> 5;
+            if (delta < 0 && window.innerWidth <= minWidth) {
+                return false;
+            }
+            if (picResource) {
+                window.resize(delta, scale);
+            } else {
+                window.resizeTo(window.innerWidth + delta, window.innerHeight + delta);
+            }
+            return false;
+        });
+    }
+    
+    const dragAreaClass = 'drag-area';
+    function bindDragAreaListener(ele, target) {
+        bindClick(ele, function() {
+            target.classList.add(dragAreaClass);
+            setTimeout(() => {
+                target.classList.remove(dragAreaClass);
+            }, 3000);
+        });
     }
 
     /**
@@ -259,48 +327,24 @@
      * 绑定鼠标滚轮事件
      */
     async function bindMouseWheelListener() {
-        const wheelListener = (e) => {
-            let scale = picResource ? img.height / img.width : frameScale;
-            let delta = (-e.deltaY) >> 5;
-            if (delta < 0 && window.innerWidth <= minWidth) {
-                return false;
-            }
-            if (picResource) {
-                window.resize(delta, scale);
-            } else {
-                window.resizeTo(window.innerWidth + delta, window.innerHeight + delta);
-            }
-            return false;
-        };
-
         let target = document;
         if (!picResource) {
             await waitIFrame();
             target = innerDoc;
         }
-        target.body.addEventListener('mousewheel', wheelListener);
+        bindWheelListener(target.body)
     }
 
     /**
      * 绑定鼠标拖动事件，点击后3s内可以拖拽，3s后恢复鼠标事件功能
      */
     async function bindMouseDrag() {
-        const dragAreaClass = 'drag-area';
-        const dragAreaListener = (ele, target) => {
-            bindClick(ele, function() {
-                target.classList.add(dragAreaClass);
-                setTimeout(() => {
-                    target.classList.remove(dragAreaClass);
-                }, 3000);
-            });
-        };
-
         let clickEle = showEle;
         if (!picResource) {
             await waitIFrame();
             clickEle = innerDoc.body;
         }
-        dragAreaListener(clickEle, showEle);
+        bindDragAreaListener(clickEle, showEle);
     }
 
     /**
